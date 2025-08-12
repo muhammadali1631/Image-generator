@@ -10,7 +10,7 @@ export default function Home() {
 
   let query = async (data: {}) => {
     const response = await fetch(
-      "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-dev",
+      "https://router.huggingface.co/nebius/v1/images/generations",
       {
         headers: {
           Authorization: `Bearer ${process.env.api_key}`,
