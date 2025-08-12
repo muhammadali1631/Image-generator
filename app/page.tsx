@@ -1,41 +1,48 @@
-"use client"
+"use client";
 import Image from "next/image";
 import { useState } from "react";
 
 export default function Home() {
   const [text, setText] = useState("");
-  const [url, setUrl] = useState("");
   const [loader, setLoader] = useState(false);
   const [images, setImages] = useState<string[]>([]);
 
-  let query = async (data: {}) => {
+  const query = async (data: {}) => {
     const response = await fetch(
       "https://router.huggingface.co/nebius/v1/images/generations",
       {
         headers: {
-          Authorization: `Bearer ${process.env.api_key}`,
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_HF_TOKEN}`,
           "Content-Type": "application/json",
         },
         method: "POST",
         body: JSON.stringify(data),
       }
     );
-    const result = await response.blob();
-    const output = URL.createObjectURL(result);
-    return output;
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    // Convert Base64 to data URL
+    const base64 = result.data[0].b64_json;
+    return `data:image/png;base64,${base64}`;
   };
 
   const onClickHandler = async () => {
     try {
+      if (!text.trim()) return alert("Please enter a prompt.");
       setLoader(true);
-      const input = { inputs: text };
-      const result = await query({     response_format: "b64_json",
-    prompt: input,
-    model: "black-forest-labs/flux-dev", });
-      setUrl(result);
-      setImages([...images, result]);
+      const result = await query({
+        response_format: "b64_json",
+        prompt: text,
+        model: "black-forest-labs/flux-dev",
+      });
+      setImages((prev) => [...prev, result]);
     } catch (error) {
       console.error("Error:", error);
+      alert("Failed to generate image. Check console for details.");
     } finally {
       setLoader(false);
     }
@@ -50,20 +57,20 @@ export default function Home() {
         alignItems: "center",
       }}
     >
+      {/* Input + Button */}
       <div className="w-[80%] p-4 text-center bg-white border border-gray-200 rounded-lg shadow sm:p-8 dark:bg-gray-800 dark:border-gray-700">
         <h5 className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
           NextGen Image Generator
         </h5>
         <p className="mb-5 text-base text-gray-500 sm:text-lg dark:text-gray-400">
-          FLUX.1 [dev] is a 12 billion parameter rectified flow transformer
-          capable of generating images from text descriptions.
+          FLUX.1 [dev] is a 12B parameter rectified flow transformer capable of
+          generating images from text descriptions.
         </p>
-        <div className="flex-col gap-4 items-center justify-center space-y-4 sm:flex sm:space-y-0 sm:space-x-4 rtl:space-x-reverse">
+        <div className="flex flex-col gap-4">
           <textarea
-            id="message"
             rows={4}
             className="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-            placeholder="Write your thoughts here..."
+            placeholder="Describe your image..."
             onChange={(e) => setText(e.target.value)}
           />
           <button
@@ -74,7 +81,7 @@ export default function Home() {
             Generate
           </button>
           {loader && (
-            <div role="status">
+            <div role="status" className="flex justify-center">
               <svg
                 aria-hidden="true"
                 className="w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600"
@@ -96,15 +103,17 @@ export default function Home() {
           )}
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-4  max-w-[80%] bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
+
+      {/* Generated Images */}
+      <div className="grid grid-cols-3 gap-4 max-w-[80%] mt-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700 p-4">
         {images.map((image, index) => (
           <Image
-            key={index} // Add a unique key prop
+            key={index}
             className="rounded-lg"
             src={image}
-            alt="Generated Image"
-            width={300} // Use appropriate width
-            height={300} // Use appropriate height
+            alt={`Generated Image ${index + 1}`}
+            width={300}
+            height={300}
           />
         ))}
       </div>
