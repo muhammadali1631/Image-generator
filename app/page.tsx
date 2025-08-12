@@ -29,7 +29,9 @@ export default function Home() {
     try {
       setLoader(true);
       const input = { inputs: text };
-      const result = await query(input);
+      const result = await query({     response_format: "b64_json",
+    prompt: input,
+    model: "black-forest-labs/flux-dev", });
       setUrl(result);
       setImages([...images, result]);
     } catch (error) {
